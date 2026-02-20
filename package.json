@@ -5,5 +5,8 @@
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "install:all": "cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.6.6"
   }
 }

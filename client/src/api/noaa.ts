@@ -1,6 +1,6 @@
 import { DataPoint, DataStream, PlasmaPoint, KpPoint, XrayPoint } from '../types';
 
-const BASE = 'http://localhost:3099/api';
+const BASE = import.meta.env.DEV ? 'http://localhost:3099/api' : '/api';
 
 async function fetchJson<T>(url: string): Promise<T> {
   const resp = await fetch(url);
