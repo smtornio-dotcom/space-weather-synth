@@ -457,16 +457,45 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
-  .bottom-panel {
-    flex-direction: column;
+  html, body, #root {
+    overflow: auto;
+    height: auto;
   }
+
+  .app {
+    height: auto;
+    max-height: none;
+    overflow: auto;
+  }
+
+  .main-layout {
+    overflow: auto;
+  }
+
+  .top-panel {
+    flex: none;
+    height: 300px;
+    min-height: 250px;
+  }
+
+  .bottom-panel {
+    flex: none;
+    flex-direction: column;
+    overflow: visible;
+    padding-bottom: 24px;
+  }
+
   .control-strip {
     flex-wrap: wrap;
   }
-  .top-panel {
-    flex: 0 0 55%;
+
+  .bottom-right {
+    min-width: 0;
+    width: 100%;
   }
-  .bottom-panel {
-    flex: 0 0 45%;
+
+  .control-group {
+    min-width: 0;
+    flex: 1 1 140px;
   }
 }
