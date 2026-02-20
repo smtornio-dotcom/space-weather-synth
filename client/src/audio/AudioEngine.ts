@@ -87,7 +87,13 @@ export class AudioEngine {
     this.params = { ...params };
     this.arpRate = params.arpRate;
 
+    // IMPORTANT: Create AudioContext synchronously in the user-gesture call stack.
+    // Mobile browsers (iOS Safari) require this — any await before new AudioContext()
+    // breaks the gesture chain and the context will be permanently suspended.
     this.ctx = new AudioContext({ sampleRate: 44100 });
+    // Resume synchronously too (returns a promise but the call itself unlocks the context)
+    this.ctx.resume();
+    // Now we can safely await if needed
     if (this.ctx.state === 'suspended') await this.ctx.resume();
 
     // ---- Build graph ----
