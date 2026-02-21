@@ -107,6 +107,25 @@ export class AudioEngine {
     return true;
   }
 
+  /**
+   * Start with an externally-created AudioContext (created in click handler).
+   * This is the preferred path for mobile — the caller creates the context
+   * synchronously in the gesture stack, then passes it here.
+   */
+  async startWithContext(ctx: AudioContext, params: SynthParams): Promise<void> {
+    if (this._running) return;
+    this._starting = true;
+    window.__spaceWeatherStarting = true;
+
+    if (window.__spaceWeatherEngine && window.__spaceWeatherEngine !== this) {
+      window.__spaceWeatherEngine.stop();
+    }
+    window.__spaceWeatherEngine = this;
+
+    this.ctx = ctx;
+    return this._buildAndStart(params);
+  }
+
   async start(params: SynthParams): Promise<void> {
     // initContext() must have been called first (synchronously)
     if (!this.ctx || this._running) {
@@ -114,6 +133,12 @@ export class AudioEngine {
       window.__spaceWeatherStarting = false;
       return;
     }
+
+    return this._buildAndStart(params);
+  }
+
+  private async _buildAndStart(params: SynthParams): Promise<void> {
+    if (!this.ctx) return;
 
     this.params = { ...params };
     this.arpRate = params.arpRate;

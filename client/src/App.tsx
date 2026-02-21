@@ -175,20 +175,29 @@ export default function App() {
     const engine = engineRef.current;
     if (engine.isRunning) return;
 
-    setAudioDebug('initContext...');
+    // Everything synchronous in the click handler — no engine abstraction.
+    // Create AudioContext, play a test tone, THEN hand off to engine.
+    const ctx = new AudioContext();
+    ctx.resume();
 
-    // SYNCHRONOUS: create & resume AudioContext in the tap gesture stack.
-    // This is required for iOS Safari / mobile Chrome autoplay policy.
-    const ok = engine.initContext();
-    if (!ok) { setAudioDebug('initContext blocked'); return; }
+    // Immediate test beep — raw oscillator straight to speakers
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = 440;
+    g.gain.value = 0.5;
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(0);
+    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+    osc.stop(ctx.currentTime + 0.6);
 
-    setAudioDebug('ctx: ' + (engine.audioContext?.state ?? 'null'));
+    setAudioDebug('beep! ctx:' + ctx.state + ' sr:' + ctx.sampleRate);
+
+    // Now hand this context to the engine
     startingRef.current = true;
-
-    // Async part: build the audio graph, set up recorder
-    engine.start(synthParamsRef.current).then(() => {
+    engine.startWithContext(ctx, synthParamsRef.current).then(() => {
       setAudioRunning(true);
-      setAudioDebug('running: ' + (engine.audioContext?.state ?? 'null'));
+      setAudioDebug('running: ' + (engine.audioContext?.state ?? '?'));
       if (engine.audioContext && engine.masterOutputNode) {
         const rec = new Recorder(engine.audioContext, engine.masterOutputNode);
         rec.init().then(() => { recorderRef.current = rec; });
