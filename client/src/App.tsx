@@ -165,6 +165,9 @@ export default function App() {
     engineRef.current.setArpRate(synthParams.arpRate);
   }, [synthParams, audioRunning]);
 
+  // --- Debug status for mobile ---
+  const [audioDebug, setAudioDebug] = useState('');
+
   // --- Start Audio (synchronous context init + async graph build) ---
   const startingRef = useRef(false);
   const handleStartAudio = useCallback(() => {
@@ -172,20 +175,26 @@ export default function App() {
     const engine = engineRef.current;
     if (engine.isRunning) return;
 
+    setAudioDebug('initContext...');
+
     // SYNCHRONOUS: create & resume AudioContext in the tap gesture stack.
     // This is required for iOS Safari / mobile Chrome autoplay policy.
     const ok = engine.initContext();
-    if (!ok) return;
+    if (!ok) { setAudioDebug('initContext blocked'); return; }
 
+    setAudioDebug('ctx: ' + (engine.audioContext?.state ?? 'null'));
     startingRef.current = true;
 
     // Async part: build the audio graph, set up recorder
     engine.start(synthParamsRef.current).then(() => {
       setAudioRunning(true);
+      setAudioDebug('running: ' + (engine.audioContext?.state ?? 'null'));
       if (engine.audioContext && engine.masterOutputNode) {
         const rec = new Recorder(engine.audioContext, engine.masterOutputNode);
         rec.init().then(() => { recorderRef.current = rec; });
       }
+    }).catch((err) => {
+      setAudioDebug('error: ' + (err as Error).message);
     }).finally(() => {
       startingRef.current = false;
     });
@@ -228,6 +237,7 @@ export default function App() {
         <p className="subtitle">
           Ambient synthesis driven by real-time solar &amp; space weather data.
           Data from NOAA SWPC (public domain). Not affiliated with or endorsed by NOAA.
+          {audioDebug && <span style={{ marginLeft: 12, color: '#f87171' }}>[{audioDebug}]</span>}
         </p>
       </header>
 
