@@ -60,8 +60,8 @@ export const ControlStrip: React.FC<Props> = ({
       const { audioRunning: running, onStartAudio: start, onStopAudio: stop } = callbacksRef.current;
       (running ? stop : start)();
     };
-    btn.addEventListener('touchstart', handler, { passive: true });
-    return () => btn.removeEventListener('touchstart', handler);
+    btn.addEventListener('touchend', handler);
+    return () => btn.removeEventListener('touchend', handler);
   }, []);
 
   return (
