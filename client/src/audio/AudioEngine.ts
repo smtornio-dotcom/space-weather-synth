@@ -186,7 +186,18 @@ export class AudioEngine {
     window.__spaceWeatherStarting = false;
 
     // ---- Start arp ----
-    if (params.arpEnabled) this.scheduleArpStep();
+    // Trigger first note IMMEDIATELY so there's sound right away
+    if (params.arpEnabled) {
+      this.triggerArpNote();
+      this.scheduleArpStep();
+    } else {
+      // If arp is off, bring all voices to audible level immediately
+      const now = this.ctx.currentTime;
+      const level = params.adsr.sustain * 0.25;
+      this.voices.forEach(v => {
+        v.gain.gain.setTargetAtTime(level, now, 0.3);
+      });
+    }
 
     console.log('[AudioEngine] Started (single instance). ctx.state:', this.ctx.state);
   }
@@ -280,7 +291,7 @@ export class AudioEngine {
       );
 
       // Volume envelope: swell up then decay
-      const peakLevel = (0.2 + Math.random() * 0.15) * this.params.adsr.sustain;
+      const peakLevel = (0.35 + Math.random() * 0.2) * this.params.adsr.sustain;
       const attack = 0.1 + Math.random() * (this.params.adsr.attack * 0.3);
       const holdTime = this.arpRate / 1000 * 0.3;
       const decayTau = this.arpRate / 1000 * 0.4;
@@ -288,7 +299,7 @@ export class AudioEngine {
       voice.gain.gain.cancelScheduledValues(now);
       voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
       voice.gain.gain.linearRampToValueAtTime(peakLevel, now + attack);
-      voice.gain.gain.setTargetAtTime(peakLevel * 0.3, now + attack + holdTime, decayTau);
+      voice.gain.gain.setTargetAtTime(peakLevel * 0.5, now + attack + holdTime, decayTau);
     }
 
     // Occasionally trigger #11 color (20% chance)

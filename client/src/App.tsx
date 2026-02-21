@@ -237,7 +237,7 @@ export default function App() {
         <p className="subtitle">
           Ambient synthesis driven by real-time solar &amp; space weather data.
           Data from NOAA SWPC (public domain). Not affiliated with or endorsed by NOAA.
-          {audioDebug && <span style={{ marginLeft: 12, color: '#f87171' }}>[{audioDebug}]</span>}
+          {audioDebug && <span style={{ marginLeft: 12, color: '#f87171', fontSize: 10 }}>[{audioDebug}]</span>}
         </p>
       </header>
 
