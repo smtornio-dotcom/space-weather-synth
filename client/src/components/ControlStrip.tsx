@@ -54,6 +54,10 @@ export const ControlStrip: React.FC<Props> = ({
         <button
           className={`btn ${audioRunning ? 'btn-stop' : 'btn-start'}`}
           onClick={audioRunning ? onStopAudio : onStartAudio}
+          onTouchEnd={(e) => {
+            e.preventDefault(); // prevent double-fire from touch→click
+            (audioRunning ? onStopAudio : onStartAudio)();
+          }}
         >
           {audioRunning ? 'Stop Audio' : 'Start Audio'}
         </button>
