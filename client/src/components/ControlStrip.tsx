@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { SynthParams, Waveform } from '../types';
 
 interface Props {
@@ -47,11 +47,29 @@ export const ControlStrip: React.FC<Props> = ({
     onChange({ ...params, ...partial });
   };
 
+  // Native event listener — bypasses React's synthetic event system.
+  // iOS WebKit only trusts native 'touchstart' for AudioContext unlock.
+  const audioBtnRef = useRef<HTMLButtonElement>(null);
+  const callbacksRef = useRef({ onStartAudio, onStopAudio, audioRunning });
+  callbacksRef.current = { onStartAudio, onStopAudio, audioRunning };
+
+  useEffect(() => {
+    const btn = audioBtnRef.current;
+    if (!btn) return;
+    const handler = () => {
+      const { audioRunning: running, onStartAudio: start, onStopAudio: stop } = callbacksRef.current;
+      (running ? stop : start)();
+    };
+    btn.addEventListener('touchstart', handler, { passive: true });
+    return () => btn.removeEventListener('touchstart', handler);
+  }, []);
+
   return (
     <div className="control-strip">
       {/* Audio Start/Stop */}
       <div className="control-group audio-toggle">
         <button
+          ref={audioBtnRef}
           className={`btn ${audioRunning ? 'btn-stop' : 'btn-start'}`}
           onClick={audioRunning ? onStopAudio : onStartAudio}
         >
