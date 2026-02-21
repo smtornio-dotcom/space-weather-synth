@@ -165,25 +165,30 @@ export default function App() {
     engineRef.current.setArpRate(synthParams.arpRate);
   }, [synthParams, audioRunning]);
 
-  // --- Start Audio (stable callback — reads params from ref) ---
+  // --- Start Audio (synchronous context init + async graph build) ---
   const startingRef = useRef(false);
-  const handleStartAudio = useCallback(async () => {
-    if (startingRef.current) return; // React-level guard
+  const handleStartAudio = useCallback(() => {
+    if (startingRef.current) return;
+    const engine = engineRef.current;
+    if (engine.isRunning) return;
+
+    // SYNCHRONOUS: create & resume AudioContext in the tap gesture stack.
+    // This is required for iOS Safari / mobile Chrome autoplay policy.
+    const ok = engine.initContext();
+    if (!ok) return;
+
     startingRef.current = true;
-    try {
-      const engine = engineRef.current;
-      if (engine.isRunning) return;
-      await engine.start(synthParamsRef.current);
+
+    // Async part: build the audio graph, set up recorder
+    engine.start(synthParamsRef.current).then(() => {
       setAudioRunning(true);
-      // Set up recorder
       if (engine.audioContext && engine.masterOutputNode) {
         const rec = new Recorder(engine.audioContext, engine.masterOutputNode);
-        await rec.init();
-        recorderRef.current = rec;
+        rec.init().then(() => { recorderRef.current = rec; });
       }
-    } finally {
+    }).finally(() => {
       startingRef.current = false;
-    }
+    });
   }, []); // No deps — reads from refs
 
   // --- Stop Audio ---

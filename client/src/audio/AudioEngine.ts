@@ -72,9 +72,13 @@ export class AudioEngine {
   get isRunning(): boolean { return this._running; }
   get masterOutputNode(): AudioNode | null { return this.masterGain ?? null; }
 
-  async start(params: SynthParams): Promise<void> {
-    // Double lock: instance-level + window-level (survives HMR)
-    if (this._starting || this._running || window.__spaceWeatherStarting) return;
+  /**
+   * Call this SYNCHRONOUSLY from the click/tap handler — before any await.
+   * Mobile browsers (iOS Safari) require AudioContext creation + resume
+   * to happen in the direct user-gesture call stack.
+   */
+  initContext(): boolean {
+    if (this._starting || this._running || window.__spaceWeatherStarting) return false;
     this._starting = true;
     window.__spaceWeatherStarting = true;
 
@@ -82,18 +86,25 @@ export class AudioEngine {
     if (window.__spaceWeatherEngine && window.__spaceWeatherEngine !== this) {
       window.__spaceWeatherEngine.stop();
     }
-
     window.__spaceWeatherEngine = this;
+
+    this.ctx = new AudioContext({ sampleRate: 44100 });
+    this.ctx.resume(); // must be called synchronously in gesture
+    return true;
+  }
+
+  async start(params: SynthParams): Promise<void> {
+    // initContext() must have been called first (synchronously)
+    if (!this.ctx || this._running) {
+      this._starting = false;
+      window.__spaceWeatherStarting = false;
+      return;
+    }
+
     this.params = { ...params };
     this.arpRate = params.arpRate;
 
-    // IMPORTANT: Create AudioContext synchronously in the user-gesture call stack.
-    // Mobile browsers (iOS Safari) require this — any await before new AudioContext()
-    // breaks the gesture chain and the context will be permanently suspended.
-    this.ctx = new AudioContext({ sampleRate: 44100 });
-    // Resume synchronously too (returns a promise but the call itself unlocks the context)
-    this.ctx.resume();
-    // Now we can safely await if needed
+    // Ensure context is fully running
     if (this.ctx.state === 'suspended') await this.ctx.resume();
 
     // ---- Build graph ----
