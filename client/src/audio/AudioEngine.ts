@@ -88,8 +88,22 @@ export class AudioEngine {
     }
     window.__spaceWeatherEngine = this;
 
-    this.ctx = new AudioContext({ sampleRate: 44100 });
+    this.ctx = new AudioContext();
     this.ctx.resume(); // must be called synchronously in gesture
+
+    // Test beep: plain oscillator → destination, bypasses entire chain.
+    // If you can't hear this, Web Audio itself isn't working on this device.
+    const testOsc = this.ctx.createOscillator();
+    const testGain = this.ctx.createGain();
+    testOsc.frequency.value = 440;
+    testGain.gain.value = 0.3;
+    testOsc.connect(testGain);
+    testGain.connect(this.ctx.destination);
+    testOsc.start();
+    testGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    testGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
+    testOsc.stop(this.ctx.currentTime + 0.6);
+
     return true;
   }
 
